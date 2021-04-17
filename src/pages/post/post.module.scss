@@ -1,1 +1,114 @@
-// TODO
+.postWrapper {
+  max-width: 100vw;
+  margin-bottom: 5rem;
+
+  overflow-x: hidden;
+
+  img {
+    width: 100vw;
+    max-height: 50vh;
+
+    margin-bottom: 5rem;
+  }
+}
+
+.postContainer {
+  h1 {
+    font-size: 2.5rem;
+    line-height: 2.1rem;
+    color: var(--heading);
+    margin-bottom: 1.5rem;
+    font-weight: bold;
+  }
+}
+
+.postInfo {
+  display: flex;
+  align-items: center;
+
+  flex-direction: row;
+
+  margin-bottom: 4rem;
+
+  div {
+    display: flex;
+    align-items: center;
+    color: var(--info);
+    font-size: 0.875rem;
+
+    svg {
+      margin-right: 0.5rem;
+    }
+
+    p {
+      margin: 0;
+    }
+
+    & + div {
+      margin-left: 1.5rem;
+    }
+  }
+}
+
+.postContent {
+  section {
+    & + section {
+      margin-top: 3rem;
+    }
+
+    h3 {
+      font-size: 1.75rem;
+      line-height: 2.1rem;
+      color: var(--heading);
+      font-weight: bold;
+    }
+  }
+}
+
+.postBody {
+  * {
+    line-height: 1.5rem;
+    margin-top: 1.5rem;
+  }
+
+  a {
+    color: var(--highlight);
+    transition: text-decoration 0.2s ease-in-out;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+}
+
+.postLoading {
+  color: var(--highlight);
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  position: absolute;
+  top: 50%;
+  left: 50%;
+
+  svg {
+    font-size: 4rem;
+    animation: rotation 0.75s infinite linear;
+    margin-bottom: 1rem;
+  }
+
+  p {
+    font-size: 2rem;
+    font-weight: bold;
+  }
+}
+
+@keyframes rotation {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(359deg);
+  }
+}

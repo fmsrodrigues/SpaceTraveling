@@ -1,1 +1,71 @@
-// TODO
+.homeMain{
+  height: calc(100vh - 10rem);
+}
+
+.homePosts {
+  a {
+    display: block;
+
+    strong {
+      font-size: 1.75rem;
+      line-height: 2.1rem;
+      transition: color 0.2s;
+      margin-bottom: .5rem;
+      color: var(--heading);
+    }
+
+    p {
+      line-height: 1.36rem;
+      margin-bottom: 1.5rem;
+    }
+
+    & + a {
+      margin-top: 3rem;
+    }
+
+    &:hover strong{
+      color: var(--highlight);
+    }
+  }
+}
+
+.homePostInfo {
+  display: flex;
+  align-items: center;
+
+  flex-direction: row;
+
+  div {
+    display: flex;
+    align-items: center;
+    color: var(--info);
+    font-size: 0.875rem;
+
+    svg {
+      margin-right: 0.5rem;
+    }
+
+    p {
+      margin: 0;
+    }
+
+    & + div {
+      margin-left: 1.5rem;
+    }
+  }
+}
+
+.homeLoadButton {
+  border: none;
+  background: transparent;
+  color: var(--highlight);
+  font-weight: 600;
+
+  transition: text-decoration 0.2s ease-in-out,;
+
+  &:hover {
+    text-decoration: underline;
+  }
+
+  margin-top: 4.5rem;
+}
