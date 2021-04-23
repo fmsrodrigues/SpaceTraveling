@@ -1,6 +1,8 @@
 import { GetStaticPaths, GetStaticProps } from 'next';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
+import Link from 'next/link';
+import { useEffect } from 'react';
 import Prismic from '@prismicio/client';
 import { RichText } from 'prismic-dom';
 import { Document } from '@prismicio/client/types/documents';
@@ -17,6 +19,7 @@ import Header from '../../components/Header';
 
 interface Post {
   first_publication_date: string | null;
+  last_publication_date: string | null;
   data: {
     title: string;
     banner: {
@@ -35,6 +38,7 @@ interface Post {
 interface PostDocument {
   uid: string;
   first_publication_date: string | null;
+  last_publication_date: string | null;
   data: {
     title: string;
     subtitle: string;
@@ -53,12 +57,22 @@ interface PostDocument {
 
 interface PostProps {
   post: Post;
+  preview: boolean;
+  nextPost: null | {
+    id: string;
+    title: string;
+  };
+  previousPost: null | {
+    id: string;
+    title: string;
+  };
 }
 
 function parsePrismicResponse(document: Document): PostDocument {
   return {
     uid: document.uid,
     first_publication_date: document.first_publication_date,
+    last_publication_date: document.last_publication_date,
     data: {
       title: document.data.title,
       subtitle: document.data.subtitle,
@@ -74,8 +88,25 @@ function parsePrismicResponse(document: Document): PostDocument {
   };
 }
 
-export default function Post({ post }: PostProps): JSX.Element {
+export default function Post({
+  post,
+  preview,
+  nextPost,
+  previousPost,
+}: PostProps): JSX.Element {
   const router = useRouter();
+
+  useEffect(() => {
+    const script = document.createElement('script');
+    const anchor = document.getElementById('inject-comments-for-uterances');
+    script.setAttribute('src', 'https://utteranc.es/client.js');
+    script.setAttribute('crossorigin', 'anonymous');
+    script.setAttribute('async', 'true');
+    script.setAttribute('repo', 'f-maia/SpaceTraveling');
+    script.setAttribute('issue-term', 'pathname');
+    script.setAttribute('theme', 'github-dark');
+    anchor.appendChild(script);
+  }, []);
 
   function getReadingTime(): number {
     const words = post.data.content.reduce(
@@ -124,21 +155,40 @@ export default function Post({ post }: PostProps): JSX.Element {
 
           <div className={styles.postInfo}>
             <div>
-              <FiCalendar />
-              <time>
-                {format(new Date(post.first_publication_date), 'dd LLL yyyy', {
-                  locale: ptBR,
-                })}
-              </time>
+              <div>
+                <FiCalendar />
+                <time>
+                  {format(
+                    new Date(post.first_publication_date),
+                    'dd LLL yyyy',
+                    {
+                      locale: ptBR,
+                    }
+                  )}
+                </time>
+              </div>
+              <div>
+                <FiUser />
+                <p>{post.data.author}</p>
+              </div>
+              <div>
+                <FiClock />
+                <p>{getReadingTime()} min</p>
+              </div>
             </div>
-            <div>
-              <FiUser />
-              <p>{post.data.author}</p>
-            </div>
-            <div>
-              <FiClock />
-              <p>{getReadingTime()} min</p>
-            </div>
+            {!!post.last_publication_date && (
+              <div>
+                <span>
+                  {format(
+                    new Date(post.last_publication_date),
+                    "'* editado em 'dd MMM yyyy', às 'HH:mm",
+                    {
+                      locale: ptBR,
+                    }
+                  )}
+                </span>
+              </div>
+            )}
           </div>
 
           <div className={styles.postContent}>
@@ -154,6 +204,52 @@ export default function Post({ post }: PostProps): JSX.Element {
               </section>
             ))}
           </div>
+
+          {(!!previousPost || !!nextPost) && (
+            <div className={styles.postNextAndPreviousContainer}>
+              <hr />
+              <div>
+                <div
+                  className={`${styles.postNextAndPrevious} ${styles.postPrevious}`}
+                >
+                  {!!previousPost && (
+                    <>
+                      <span>{previousPost.title}</span>
+                      <Link href={`/post/${previousPost.id}`}>
+                        <a>Post anterior</a>
+                      </Link>
+                    </>
+                  )}
+                </div>
+
+                <div
+                  className={`${styles.postNextAndPrevious} ${styles.postNext}`}
+                >
+                  {!!nextPost && (
+                    <>
+                      <span>{nextPost.title}</span>
+                      <Link href={`/post/${nextPost.id}`}>
+                        <a>Próximo post</a>
+                      </Link>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {preview && (
+            <aside className={styles.postPreview}>
+              <Link href="/api/exit-preview">
+                <a>Sair do modo Preview</a>
+              </Link>
+            </aside>
+          )}
+
+          <div
+            id="inject-comments-for-uterances"
+            className={styles.postComments}
+          />
         </div>
       </main>
     </>
@@ -176,17 +272,81 @@ export const getStaticPaths: GetStaticPaths = async () => {
   };
 };
 
-export const getStaticProps: GetStaticProps = async context => {
+export const getStaticProps: GetStaticProps = async ({
+  params,
+  preview = null,
+  previewData = {},
+}) => {
+  const { ref } = previewData;
+
   const prismic = getPrismicClient();
   const response = await prismic.getByUID(
     'posts',
-    String(context.params.slug),
-    {}
+    params.slug as string,
+    ref ? { ref } : null
   );
+
+  if (!response) {
+    return {
+      redirect: {
+        destination: '/',
+        permanent: false,
+      },
+    };
+  }
+
+  const publicationDate =
+    response.first_publication_date ??
+    format(new Date(), "yyyy-MM-dd'T'HH:mm:ssXXXX");
+
+  const nextPost = await prismic.query(
+    [
+      Prismic.Predicates.at('document.type', 'posts'),
+      Prismic.Predicates.dateAfter(
+        'document.first_publication_date',
+        publicationDate
+      ),
+    ],
+    {
+      fetch: ['posts.title'],
+      pageSize: 1,
+    }
+  );
+
+  const previousPost = await prismic.query(
+    [
+      Prismic.Predicates.at('document.type', 'posts'),
+      Prismic.Predicates.dateBefore(
+        'document.first_publication_date',
+        publicationDate
+      ),
+    ],
+    {
+      fetch: ['posts.title'],
+      pageSize: 1,
+    }
+  );
+
+  const nextPostInfo = nextPost.results[0]
+    ? {
+        id: nextPost.results[0].uid,
+        title: nextPost.results[0].data.title,
+      }
+    : null;
+
+  const previousPostInfo = previousPost.results[0]
+    ? {
+        id: previousPost.results[0].uid,
+        title: previousPost.results[0].data.title,
+      }
+    : null;
 
   return {
     props: {
-      post: parsePrismicResponse(response),
+      preview,
+      post: parsePrismicResponse(response as Document),
+      nextPost: nextPostInfo,
+      previousPost: previousPostInfo,
     },
   };
 };
